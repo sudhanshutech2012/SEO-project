@@ -1,0 +1,407 @@
+{
+  "name": "COMPETITOR GAP ANALYSIS",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "keyword",
+              "value": "data analytics course"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8ffcd4ef-0b8d-4cca-9980-d77438074eab",
+      "name": "Set Keyword",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        -112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "c9f897e2-c4e2-43bd-af8d-e88d355730a6",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.keyword }}"
+            },
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "api_key",
+              "value": "7241c1599af2bf9684161f526da07eb6135dadef8ae21da4d84e603f37122ea3"
+            },
+            {
+              "name": "num",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -288,
+        -112
+      ],
+      "id": "6c5ae63d-ef81-4da0-bd46-9c5851339e5e",
+      "name": "Get Google results"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $json.organic_results || [];\n\nreturn results.map(r => ({\n  json: {\n    url: r.link\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -112
+      ],
+      "id": "4e197614-d211-4527-9128-2527cc591b4e",
+      "name": "Ectract URL"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "h1",
+              "cssSelector": "h1",
+              "returnArray": true
+            },
+            {
+              "key": "h2",
+              "cssSelector": "h2",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        336,
+        -112
+      ],
+      "id": "3d55f894-3631-4196-92e8-53639102ee8a",
+      "name": "Extract Heading"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    content: [\n      ...($json.h1 || []),\n      ...($json.h2 || [])\n    ].join(\", \")\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        -112
+      ],
+      "id": "8e66e53e-f977-4eea-bbbf-775ea6656038",
+      "name": "Clean Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Extract main topics from this content. Return only JSON array.\\n\\nContent:\\n{{$json.content}}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "dee2848a-51c4-4525-904e-f1ac0483f977",
+      "name": "Topic Extraction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -624,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $input.first().json.choices[0].message.content;\n\nraw = raw.replace(/```json|```/g, \"\");\n\nreturn [\n  {\n    json: {\n      topics: JSON.parse(raw)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        96
+      ],
+      "id": "bd5e19ea-3d4c-4031-a95a-3779bc287e00",
+      "name": "Parse Groq Output"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"These are topics covered by competitors:\\n{{$json.topics}}\\n\\nFind missing topics they are NOT covering. Return JSON array only.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "a8875370-c803-4bb2-9865-9125463de0f9",
+      "name": "Find Gap",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -144,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $json.choices[0].message.content;\n\nraw = raw.replace(/```json|```/g, \"\");\n\nreturn [\n  {\n    json: {\n      missing_topics: JSON.parse(raw)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        96
+      ],
+      "id": "e28864dc-1a83-4f6a-945a-6bd62827122f",
+      "name": "Parse Gap Output"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a strict JSON generator.\\n\\nRules:\\n- Return ONLY valid JSON\\n- No explanation\\n- No markdown\\n- No extra text\\n- Return EXACTLY 3 items\\n\\nFormat:\\n[\\n  {\\\"title\\\":\\\"...\\\",\\\"description\\\":\\\"...\\\"}\\n]\\n\\nUse these missing topics:\\n{{$json.missing_topics}}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "096d52e3-e8ba-4e12-b5a5-d1db8a112980",
+      "name": "Generating Blog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        304,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $json.choices[0].message.content;\n\nraw = raw.replace(/```json|```/g, \"\");\n\nconst start = raw.indexOf(\"[\");\nconst end = raw.lastIndexOf(\"]\") + 1;\n\nraw = raw.slice(start, end);\n\nconst parsed = JSON.parse(raw);\n\n// ✅ convert array → multiple items\nreturn parsed.map(item => ({\n  json: item\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        96
+      ],
+      "id": "7818975f-913b-4893-a3d1-9ea7f57d4e80",
+      "name": "Code Cleaning"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        128,
+        -112
+      ],
+      "id": "f25e9e5d-2a1a-459e-b36c-35aae42493af",
+      "name": "Scrap Top ranking Page"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Keyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Keyword": {
+      "main": [
+        [
+          {
+            "node": "Get Google results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Google results": {
+      "main": [
+        [
+          {
+            "node": "Ectract URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ectract URL": {
+      "main": [
+        [
+          {
+            "node": "Scrap Top ranking Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Heading": {
+      "main": [
+        [
+          {
+            "node": "Clean Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Data": {
+      "main": [
+        [
+          {
+            "node": "Topic Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topic Extraction": {
+      "main": [
+        [
+          {
+            "node": "Parse Groq Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Groq Output": {
+      "main": [
+        [
+          {
+            "node": "Find Gap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Gap": {
+      "main": [
+        [
+          {
+            "node": "Parse Gap Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Gap Output": {
+      "main": [
+        [
+          {
+            "node": "Generating Blog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generating Blog": {
+      "main": [
+        [
+          {
+            "node": "Code Cleaning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrap Top ranking Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Heading",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "3604d071-3d93-446f-95a3-07691ce6d7ee",
+  "meta": {
+    "instanceId": "314e38bebfc6c89b677cc85b6350e92ca8e8a15233e00843f74b9a55466bc877"
+  },
+  "id": "1X5nLrWDKCwp9pNZ",
+  "tags": []
+}

@@ -1,0 +1,498 @@
+{
+  "name": "SEO Keyword Research Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Generate 5 high-intent long-tail keywords for: {{ $json.keyword }}\\n\\nReturn ONLY JSON:\\n[{\\\"keyword\\\":\\\"...\\\"}]\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "a6c40f8b-4724-4b49-b084-8615d84215a7",
+      "name": "Generate Keywords (LLM)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        592,
+        -352
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "keyword",
+              "value": "data analytics course"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ab06e191-f6d7-4721-8afb-6131dd2baea3",
+      "name": "Set Keyword",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -352
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "489ecdae-efac-44a4-a821-df4bf8be8c83",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = items[0].json.choices[0].message.content;\n\n// clean markdown if exists\nraw = raw.replace(/```json|```/g, \"\");\n\nconst parsed = JSON.parse(raw);\n\nreturn parsed.map(k => ({\n  keyword: k.keyword.toLowerCase().trim()\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        -352
+      ],
+      "id": "da8316cb-ba44-4d8e-a0fb-b45673ba786c",
+      "name": "Clean Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Classify each keyword as High or Low intent.\\n\\nHigh intent = buy, enroll, hire, best, pricing, near me\\n\\nReturn ONLY JSON:\\n[{\\\"keyword\\\":\\\"...\\\",\\\"intent\\\":\\\"High\\\"}]\\n\\nKeywords:\\n{{$json.keywords}}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "bcb72e64-439a-493c-8cfc-61d0a126c913",
+      "name": "Intent Classification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1264,
+        -352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    keywords: items.map(i => i.json.keyword).join(\", \")\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        -128
+      ],
+      "id": "8320685e-58ea-42d7-a043-5f5c7eb09715",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Classify each keyword into ONE platform:\\n\\n- Website (blogs, SEO content)\\n- GMB (local intent, near me, city-based)\\n- LinkedIn (jobs, B2B, professional)\\n\\nReturn ONLY JSON:\\n[{\\\"keyword\\\":\\\"...\\\",\\\"platform\\\":\\\"Website\\\"}]\\n\\nKeywords:\\n{{$json.keywords}}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "6e8c304a-0eda-42b0-9337-e03b01d74026",
+      "name": "Intent Classification1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        368,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = items[0].json.choices[0].message.content;\n\nraw = raw.replace(/```json|```/g, \"\");\n\nconst parsed = JSON.parse(raw);\n\nreturn parsed;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -128
+      ],
+      "id": "cab3bfa9-b1f0-45a9-8a99-9a2e0fb3503f",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1776,
+        -624
+      ],
+      "id": "8de8fdc0-ae53-4296-8de2-ac80ec9bea1f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.keyword }}"
+            },
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "api_key",
+              "value": "7241c1599af2bf9684161f526da07eb6135dadef8ae21da4d84e603f37122ea3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1936,
+        -416
+      ],
+      "id": "effb1c7d-6428-4110-8694-2f932487fc1d",
+      "name": "Keyword Research"
+    },
+    {
+      "parameters": {
+        "jsCode": "const keyword = items[0].json.search_parameters.q;\nconst results = items[0].json.search_information?.total_results || 0;\n\nlet competition = \"High\";\n\nif (results < 1000000) competition = \"Low\";\nelse if (results < 5000000) competition = \"Medium\";\n\nreturn [{\n  keyword,\n  intent: \"High Intent\",\n  competition\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        -416
+      ],
+      "id": "78bd3a27-df7a-440f-a02e-449d76b25a7b",
+      "name": "Add competition"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(i => i.json.competition === \"Low\");"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2384,
+        -416
+      ],
+      "id": "a564411e-505c-4e71-9ffd-cc877016b74b",
+      "name": "Keep only Low competition"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    keywords: items.map(i => i.json.keyword).join(\", \")\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        -416
+      ],
+      "id": "bfba2996-f81f-49d5-8f6c-5fcbb6a2c986",
+      "name": "Platform Classification"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a strict classifier.\\n\\nIMPORTANT RULES:\\n- DO NOT generate new keywords\\n- DO NOT modify keywords\\n- DO NOT create variations\\n- ONLY classify the given keywords\\n- Output count must be EXACTLY same as input count\\n\\nClassify each keyword into ONE:\\n- Website\\n- GMB\\n- LinkedIn\\n\\nReturn ONLY JSON:\\n[{\\\"keyword\\\":\\\"...\\\",\\\"platform\\\":\\\"Website\\\"}]\\n\\nKeywords:\\n{{$json.keywords}}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "861625d7-2dae-4491-8899-c73429d1289a",
+      "name": "PLATFORM CLASSIFICATION using HTTP request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2832,
+        -416
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = items[0].json.choices[0].message.content;\n\n// clean if needed\nraw = raw.replace(/```json|```/g, \"\");\n\nconst parsed = JSON.parse(raw);\n\n// filter only HIGH intent\nreturn parsed\n  .filter(k => k.intent === \"High\")\n  .map(k => ({\n    keyword: k.keyword\n  }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        -352
+      ],
+      "id": "cc3ba8fb-594b-4288-b170-fc470317979d",
+      "name": "Clean Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    keywords: items.map(i => i.json.keyword).join(\", \")\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -352
+      ],
+      "id": "86d80285-501b-40c8-9ab5-96dd2297f3c0",
+      "name": "Merging Keywords"
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = items[0].json.choices[0].message.content;\n\n// remove markdown\nraw = raw.replace(/```json|```/g, \"\");\n\n// extract ONLY first JSON array\nconst start = raw.indexOf(\"[\");\nconst end = raw.lastIndexOf(\"]\") + 1;\n\nconst cleanJson = raw.substring(start, end);\n\nconst parsed = JSON.parse(cleanJson);\n\nreturn parsed.map(k => ({\n  keyword: k.keyword,\n  intent: \"High Intent\",\n  competition: \"Low\",\n  platform: k.platform\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3056,
+        -352
+      ],
+      "id": "6dcd61ad-4c08-4545-ae81-8230cbf94523",
+      "name": "Splitting Out Keywords"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate Keywords (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Clean Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Keyword": {
+      "main": [
+        [
+          {
+            "node": "Generate Keywords (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Keyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Code": {
+      "main": [
+        [
+          {
+            "node": "Merging Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Classification": {
+      "main": [
+        [
+          {
+            "node": "Clean Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Intent Classification1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Classification1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Keyword Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword Research": {
+      "main": [
+        [
+          {
+            "node": "Add competition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add competition": {
+      "main": [
+        [
+          {
+            "node": "Keep only Low competition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep only Low competition": {
+      "main": [
+        [
+          {
+            "node": "Platform Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Platform Classification": {
+      "main": [
+        [
+          {
+            "node": "PLATFORM CLASSIFICATION using HTTP request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PLATFORM CLASSIFICATION using HTTP request": {
+      "main": [
+        [
+          {
+            "node": "Splitting Out Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merging Keywords": {
+      "main": [
+        [
+          {
+            "node": "Intent Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Splitting Out Keywords": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e237a1a0-2b09-4870-b507-d9c7538d3cb1",
+  "meta": {
+    "instanceId": "314e38bebfc6c89b677cc85b6350e92ca8e8a15233e00843f74b9a55466bc877"
+  },
+  "id": "cZeSXUJ3VMLJCRj1",
+  "tags": []
+}

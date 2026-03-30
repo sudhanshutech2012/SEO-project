@@ -1,0 +1,466 @@
+{
+  "name": "SEO Automation Agent part 2",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -976,
+        -288
+      ],
+      "id": "3f8c22c0-53d4-4edc-80e6-14add766d850",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// INPUT\nconst title = $json.title || \"\";\nconst meta = $json.meta || \"\";\nconst h1 = $json.h1 || \"\";\nconst contentLength = $json.contentLength || 0;\nlet links = $json.links || [];\n\n// =======================\n// 1. CLEAN LINKS\n// =======================\nlinks = links.filter(link => link && typeof link === \"string\");\nlinks = [...new Set(links)];\n\n// =======================\n// 2. LINK CATEGORIZATION\n// =======================\nconst internalLinks = links.filter(link => link.startsWith(\"/\"));\nconst externalLinks = links.filter(link => link.startsWith(\"http\"));\nconst anchorLinks = links.filter(link => link.startsWith(\"#\"));\nconst mailLinks = links.filter(link => link.startsWith(\"mailto\"));\n\n// =======================\n// 3. KEYWORD LOGIC\n// =======================\n// (Replace with dynamic keyword later)\nconst keyword = \"data analytics\";\nconst keywordLower = keyword.toLowerCase();\n\nconst keywordInTitle = title.toLowerCase().includes(keywordLower);\nconst keywordInMeta = meta.toLowerCase().includes(keywordLower);\nconst keywordInH1 = h1.toLowerCase().includes(keywordLower);\n\nconst keywordScore = [\n  keywordInTitle,\n  keywordInMeta,\n  keywordInH1\n].filter(Boolean).length;\n\n// =======================\n// 4. SEO RULES\n// =======================\n\n// Title length (ideal: 50–60)\nconst titleLength = title.length;\nconst titleGood = titleLength >= 50 && titleLength <= 60;\n\n// Meta length (ideal: 120–160)\nconst metaLength = meta.length;\nconst metaGood = metaLength >= 120 && metaLength <= 160;\n\n// Content quality\nconst thinContent = contentLength < 800;\n\n// Link issues\nconst tooManyExternalLinks = externalLinks.length > 50;\nconst lowInternalLinks = internalLinks.length < 5;\n\n// =======================\n// 5. PENALTY-BASED SCORING\n// =======================\nlet score = 100;\n\n// Missing basics\nif (!title) score -= 15;\nif (!meta) score -= 15;\nif (!h1) score -= 10;\n\n// Optimization issues\nif (!titleGood) score -= 10;\nif (!metaGood) score -= 10;\n\n// Keyword usage\nif (keywordScore === 0) score -= 20;\nif (keywordScore === 1) score -= 10;\n\n// Content\nif (thinContent) score -= 15;\n\n// Links\nif (tooManyExternalLinks) score -= 15;\nif (lowInternalLinks) score -= 10;\n\n// Prevent negative score\nif (score < 0) score = 0;\n\n// =======================\n// 6. RECOMMENDATIONS\n// =======================\nconst recommendations = [];\n\nif (!title) {\n  recommendations.push(\"Add a title tag\");\n} else if (!titleGood) {\n  recommendations.push(\"Optimize title length (50–60 characters)\");\n}\n\nif (!meta) {\n  recommendations.push(\"Add a meta description\");\n} else if (!metaGood) {\n  recommendations.push(\"Optimize meta description (120–160 characters)\");\n}\n\nif (!h1) {\n  recommendations.push(\"Add an H1 tag\");\n}\n\nif (keywordScore < 2) {\n  recommendations.push(\"Improve keyword placement in title, meta, and H1\");\n}\n\nif (thinContent) {\n  recommendations.push(\"Increase content length (minimum 800+ words)\");\n}\n\nif (tooManyExternalLinks) {\n  recommendations.push(\"Reduce excessive external links\");\n}\n\nif (lowInternalLinks) {\n  recommendations.push(\"Add more internal links\");\n}\n\n// =======================\n// 7. FINAL OUTPUT\n// =======================\nreturn [{\n  url: $json.url,\n\n  // Basic checks\n  missing_title: title.length === 0,\n  missing_meta: meta.length === 0,\n  missing_h1: h1.length === 0,\n\n  // Lengths\n  title_length: titleLength,\n  meta_length: metaLength,\n\n  // Content\n  thin_content: thinContent,\n\n  // Keyword\n  keyword_score: keywordScore,\n\n  // Links\n  total_links: links.length,\n  internal_links: internalLinks.length,\n  external_links: externalLinks.length,\n  anchor_links: anchorLinks.length,\n\n  // Issues\n  issues: {\n    title_length_issue: !titleGood,\n    meta_length_issue: !metaGood,\n    too_many_external_links: tooManyExternalLinks,\n    low_internal_links: lowInternalLinks\n  },\n\n  // Final score\n  seo_score: score,\n\n  // Actionable insights\n  recommendations\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -288
+      ],
+      "id": "12c4f840-0b76-474e-97aa-7ea5dd8501e5",
+      "name": "SEO AUDIT LOGIC"
+    },
+    {
+      "parameters": {
+        "url": "https://www.mygreatlearning.com/data-analytics/free-courses",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -736,
+        -384
+      ],
+      "id": "cb51df74-1979-4d43-95c4-eb426ecb31fc",
+      "name": "Fetching Web page data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const title = $input.first().json.Title|| \"\";\nconst meta =$input.first().json['Meta Description'] || \"\";\nconst h1 = $input.first().json.H1|| \"\";\nconst body = $input.first().json.Body|| \"\";\nconst links = $input.first().json.Links|| [];\n\nreturn [{\n  title,\n  meta,\n  h1,\n  contentLength: body.length,\n  links\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        -288
+      ],
+      "id": "d4ef12ed-6765-48ee-878f-8be1942fd9c8",
+      "name": "Spliting out individual fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "133626cf-f599-4c98-bc21-f025beead90f",
+              "name": "keyword",
+              "value": "data analytics courses",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -928,
+        -32
+      ],
+      "id": "e0ac41bb-d9b7-4bdc-883a-ffe4339fff88",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.keyword }}"
+            },
+            {
+              "name": "hl",
+              "value": "en"
+            },
+            {
+              "name": "gl",
+              "value": "in"
+            },
+            {
+              "name": "api_key",
+              "value": "7241c1599af2bf9684161f526da07eb6135dadef8ae21da4d84e603f37122ea3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -720,
+        -32
+      ],
+      "id": "a365e94b-587a-4be3-b71d-994856b5f5a6",
+      "name": "GET GOOGLE RESULTS (SerpAPI)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $json.organic_results || [];\n\nreturn results.slice(3, 5).map(r => ({\n  url: r.link\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        -32
+      ],
+      "id": "394a5193-5489-4405-b377-38962d3e3430",
+      "name": "EXTRACT COMPETITOR URLS"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -304,
+        -32
+      ],
+      "id": "40ae38aa-de97-47f1-bca0-faa8da434c4e",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -96,
+        48
+      ],
+      "id": "cc478ec0-de1e-4808-bc0f-92455b14935a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "Title",
+              "cssSelector": "title",
+              "returnArray": true
+            },
+            {
+              "key": "Meta Description",
+              "cssSelector": "meta[name=\"description\"]",
+              "returnValue": "attribute",
+              "attribute": "content",
+              "returnArray": true
+            },
+            {
+              "key": "h1",
+              "cssSelector": "h1",
+              "returnArray": true
+            },
+            {
+              "key": "h2",
+              "cssSelector": "h2",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        48
+      ],
+      "id": "606cfdd8-f8cc-4220-beec-ec4d64a733a6",
+      "name": "Fetching Html Elements1"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "Title",
+              "cssSelector": "title"
+            },
+            {
+              "key": "Meta Description",
+              "cssSelector": "meta[name=\"description\"]",
+              "returnValue": "attribute",
+              "attribute": "content"
+            },
+            {
+              "key": "H1",
+              "cssSelector": "h1"
+            },
+            {
+              "key": "H2",
+              "cssSelector": "h2"
+            },
+            {
+              "key": "Links",
+              "cssSelector": "a",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            },
+            {
+              "key": "Body",
+              "cssSelector": "body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -544,
+        -384
+      ],
+      "id": "4beb4279-0032-4db3-9101-649cbd1dad9d",
+      "name": "Fetching Html Elements of Mine"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ensure H1 is array\nconst h1 = Array.isArray($json.H1) ? $json.H1 : [$json.H1];\n\n// Ensure H2 is array\nconst h2 = Array.isArray($json.H2) ? $json.H2 : [$json.H2];\n\n// Combine safely\nconst myHeadings = [...h1, ...h2]\n  .filter(Boolean)\n  .map(h => h.toLowerCase());\n\nreturn [{\n  myHeadings\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -384
+      ],
+      "id": "9ef70ec1-5a0f-4ee7-98e9-81400aeb0e34",
+      "name": "Fetching my headings"
+    },
+    {
+      "parameters": {
+        "jsCode": "const h1 =  $('Fetching Html Elements1').first().json.h1|| [];\nconst h2 =  $('Fetching Html Elements1').first().json.h2|| [];\n\nconst competitorHeadings = [...h1, ...h2]\n  .map(h => h.toLowerCase());\n\nreturn [{\n  competitorHeadings\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        48
+      ],
+      "id": "36bc6454-797b-4547-8059-162c938e3af7",
+      "name": "Fetching Competitor heading"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        576,
+        -16
+      ],
+      "id": "d27bb552-fa93-473d-a490-97cbf69e0f0e",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "let myHeadings = [];\nlet competitorHeadings = [];\n\n// Separate data\nitems.forEach(item => {\n  if (item.json.myHeadings) {\n    myHeadings = item.json.myHeadings;\n  }\n\n  if (item.json.competitorHeadings) {\n    competitorHeadings.push(...item.json.competitorHeadings);\n  }\n});\n\n// Remove duplicates\ncompetitorHeadings = [...new Set(competitorHeadings)];\n\n// 🔥 GAP LOGIC\nconst keywordGaps = competitorHeadings.filter(h =>\n  !myHeadings.includes(h)\n);\n\n// Final output\nreturn [{\n  my_headings: myHeadings,\n  competitor_headings_sample: competitorHeadings.slice(0, 5),\n  keyword_gaps: keywordGaps.slice(0, 10)\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -16
+      ],
+      "id": "aa424d9f-fad8-4f86-ab82-95323091aa09",
+      "name": "GAP CODE NODE"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Fetching Web page data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Web page data": {
+      "main": [
+        [
+          {
+            "node": "Fetching Html Elements of Mine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spliting out individual fields": {
+      "main": [
+        [
+          {
+            "node": "SEO AUDIT LOGIC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEO AUDIT LOGIC": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "GET GOOGLE RESULTS (SerpAPI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET GOOGLE RESULTS (SerpAPI)": {
+      "main": [
+        [
+          {
+            "node": "EXTRACT COMPETITOR URLS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXTRACT COMPETITOR URLS": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Fetching Html Elements1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Html Elements of Mine": {
+      "main": [
+        [
+          {
+            "node": "Spliting out individual fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetching my headings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Html Elements1": {
+      "main": [
+        [
+          {
+            "node": "Fetching Competitor heading",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching my headings": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Competitor heading": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "GAP CODE NODE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fa1c032f-1c11-41c5-9117-5c7063c5186f",
+  "meta": {
+    "instanceId": "314e38bebfc6c89b677cc85b6350e92ca8e8a15233e00843f74b9a55466bc877"
+  },
+  "id": "uPsWcGnUaoGIEAJm",
+  "tags": []
+}

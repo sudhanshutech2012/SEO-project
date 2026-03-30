@@ -1,0 +1,381 @@
+{
+  "name": "AI content generation",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "keyword",
+              "value": "data analytics course"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "38304c0a-55b5-4953-950c-121609d1afe3",
+      "name": "Set Keyword",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        -400
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "6271d7ca-3967-4b80-aaab-90cae0f60e35",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1552,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.keyword }}"
+            },
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "api_key",
+              "value": "7241c1599af2bf9684161f526da07eb6135dadef8ae21da4d84e603f37122ea3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1104,
+        -400
+      ],
+      "id": "7efcb8d3-85ba-412c-bca6-d9cfc76934fd",
+      "name": "Get Google results"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\n// 1. Organic results\nconst organic = data.organic_results || [];\n\nconst titles = organic.slice(0,5).map(r => r.title);\nconst snippets = organic.slice(0,5).map(r => r.snippet);\n\n// 2. Questions (FAQs)\nconst questions = (data.related_questions || [])\n  .slice(0,5)\n  .map(q => q.question);\n\n// 3. Related searches (keywords)\nconst related = (data.related_searches || [])\n  .slice(0,5)\n  .map(r => r.query);\n\n// FINAL OUTPUT\nreturn [{\n  keyword: data.search_parameters.q,\n  titles,\n  snippets,\n  questions,\n  related_keywords: related\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        -400
+      ],
+      "id": "43b07ae9-03cd-4b46-a4af-3ed779847a55",
+      "name": "CLean Code"
+    },
+    {
+      "parameters": {
+        "model": "groq/compound-mini",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        -208
+      ],
+      "id": "4de4705b-2809-437a-94b3-b61df6b76fa6",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "bv5oUZ7gkKbScf2u",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a complete SEO article:\n\nKeyword: {{ $('Set Keyword').item.json.keyword }}\nH1: {{$json.H1}}\nH2s: {{$json.H2_headings}}\nFAQs: {{$json.FAQs}}\nKeywords: {{$json.keywords_to_include}}\n\nRules:\n- 1500–2000 words\n- Use headings properly\n- Use keywords naturally\n- Add FAQ section\n- Return clean HTML",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -128,
+        -400
+      ],
+      "id": "dabae88c-1f2b-4e82-920f-fa3706aa8ea1",
+      "name": "GENERATE FULL ARTICLE"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create an SEO content brief using:\n\nKeyword: {{$json.keyword}}\n\nTop competitor titles:\n{{$json.titles}}\n\nSnippets:\n{{$json.snippets}}\n\nPeople also ask:\n{{$json.questions}}\n\nRelated keywords:\n{{$json.related_keywords}}\n\nReturn JSON with:\n- search_intent\n- H1\n- 6-8 H2 headings (based on competitors)\n- FAQs (use questions)\n- keywords to include\n- word_count",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -704,
+        -400
+      ],
+      "id": "66967e35-1e44-44e2-a80a-9d63df7ef1ef",
+      "name": "CREATE SMART AI CONTENT BRIEF"
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $json.text || \"\";\n\n// Remove ```json and ```\nraw = raw.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\n// Convert string → JSON\nlet parsed = JSON.parse(raw);\n\nreturn [parsed];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -400
+      ],
+      "id": "cb326830-339b-46f7-b973-14bae3470376",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $json.text || \"\";\n\n// Remove ```html and ```\nraw = raw.replace(/```html/g, \"\").replace(/```/g, \"\").trim();\n\nreturn [{\n  html: raw\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1488,
+        -64
+      ],
+      "id": "cf0b5b9d-ecf9-4889-af95-22996da16c83",
+      "name": "Clean HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json.html || \"\";\n\n// Extract H1\nconst titleMatch = html.match(/<h1>(.*?)<\\/h1>/i);\nconst title = titleMatch ? titleMatch[1] : \"\";\n\n// Remove HTML tags for clean text\nconst cleanText = html.replace(/<[^>]*>/g, \"\");\n\n// Short summary (first 300 chars)\nconst summary = cleanText.substring(0, 300);\n\nreturn [{\n  title,\n  summary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        -64
+      ],
+      "id": "ab8a1f7b-836b-417d-8cf3-5c26a0ca8e56",
+      "name": "Extract title and summary"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Convert this into a Google My Business post.\n\nTitle: {{$json.title}}\nContent: {{$json.summary}}\n\nRules:\n- Max 500 characters\n- Add CTA (Call Now / Learn More)\n- Make it engaging\n- Add 3–5 hashtags",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1056,
+        -64
+      ],
+      "id": "b938daac-50ba-4b88-9ef6-96d1da2d8612",
+      "name": "Generate GMB post"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an SEO and social media expert.\n\nInput:\nTitle: {{ $('Extract title and summary').item.json.title }}\nSummary: {{ $('Extract title and summary').item.json.summary }}\n\nGenerate output in STRICT JSON:\n\n{\n  \"linkedin_post\": \"\",\n  \"meta_title\": \"\",\n  \"meta_description\": \"\",\n  \"schema\": {\n    \"@context\": \"https://schema.org\",\n    \"@type\": \"Article\",\n    \"headline\": \"\",\n    \"description\": \"\",\n    \"author\": {\n      \"@type\": \"Person\",\n      \"name\": \"Your Brand\"\n    }\n  }\n}\n\nRules:\n- LinkedIn post: engaging, 5–8 lines, with hook + CTA + hashtags\n- Meta title: under 60 characters\n- Meta description: under 155 characters\n- Schema must be valid JSON-LD\n- No explanation, only JSON",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -704,
+        -64
+      ],
+      "id": "66f56382-1e4e-41c5-bf2e-2b3d47ab5d0a",
+      "name": "Linkedin Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $json.text || \"\";\n\n// Remove ```json wrapper\nraw = raw.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\nreturn [JSON.parse(raw)];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -64
+      ],
+      "id": "4cec50e0-380b-4da9-aecf-fd5391b15b16",
+      "name": "Clean Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Set Keyword": {
+      "main": [
+        [
+          {
+            "node": "Get Google results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Keyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Google results": {
+      "main": [
+        [
+          {
+            "node": "CLean Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CREATE SMART AI CONTENT BRIEF",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "GENERATE FULL ARTICLE",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate GMB post",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Linkedin Data",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CLean Code": {
+      "main": [
+        [
+          {
+            "node": "CREATE SMART AI CONTENT BRIEF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CREATE SMART AI CONTENT BRIEF": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "GENERATE FULL ARTICLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GENERATE FULL ARTICLE": {
+      "main": [
+        [
+          {
+            "node": "Clean HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean HTML": {
+      "main": [
+        [
+          {
+            "node": "Extract title and summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract title and summary": {
+      "main": [
+        [
+          {
+            "node": "Generate GMB post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate GMB post": {
+      "main": [
+        [
+          {
+            "node": "Linkedin Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linkedin Data": {
+      "main": [
+        [
+          {
+            "node": "Clean Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Code": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2fdfbad2-bf63-4a1f-9548-24aa0dc0d796",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "314e38bebfc6c89b677cc85b6350e92ca8e8a15233e00843f74b9a55466bc877"
+  },
+  "id": "9VhST21NXdWgoJ1q",
+  "tags": []
+}
